@@ -214,6 +214,7 @@
 </div>
 
 <style>
+
     /* ── Layout ── */
     .content-wrapper {
         margin-left: 260px !important;
@@ -222,61 +223,6 @@
         min-height: 100vh;
         box-sizing: border-box;
     }
-
-    @media (max-width: 1024px) {
-    .content-wrapper {
-        margin-left: 0 !important;
-        padding: 16px;
-        padding-top: 80px !important;
-    }
-
-    .col-lg-8,
-    .col-lg-4 {
-        width: 100% !important;
-        flex: 0 0 100% !important;
-        max-width: 100% !important;
-    }
-
-    .fb-header {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .field-card-actions {
-        flex-wrap: wrap;
-        gap: 3px;
-    }
-
-    .fb-canvas {
-        min-height: 300px;
-    }
-}
-
-    /* Stack canvas and panel vertically */
-    .col-lg-8,
-    .col-lg-4 {
-        width: 100% !important;
-        flex: 0 0 100% !important;
-        max-width: 100% !important;
-    }
-
-    /* Counter badge wraps nicely */
-    .fb-header {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    /* Field card actions don't overflow */
-    .field-card-actions {
-        flex-wrap: wrap;
-        gap: 3px;
-    }
-
-    /* Canvas min height smaller on tablet */
-    .fb-canvas {
-        min-height: 300px;
-    }
- }
 
     /* ── Header ── */
     .fb-title {
@@ -461,12 +407,64 @@
         border-color: #3b82f6;
         box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
     }
+
+    /* ── Preview modal ── */
+    .preview-field-wrap {
+        margin-bottom: 20px;
+    }
+
+    .preview-field-wrap label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 6px;
+        display: block;
+        color: #1e293b;
+    }
+
+    .preview-field-wrap .required-star {
+        color: #ef4444;
+        margin-left: 3px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 1024px) {
+        .content-wrapper {
+            margin-left: 0 !important;
+            padding: 16px;
+            padding-top: 80px !important;
+        }
+
+        .fb-header {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .field-card-actions {
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .col-lg-8,
+        .col-lg-4 {
+            width: 100% !important;
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+
+        .fb-canvas {
+            min-height: 300px;
+        }
+    }
+
 </style>
 
 <script>
     let draggedFieldType = null;
     let formFields = [];
     let selectedFieldId = null;
+    let history = [];
 
     const STORAGE_KEY = 'formBuilder_v1';
 
@@ -499,6 +497,26 @@
         const bsToast = new bootstrap.Toast(toast, { delay: 2500 });
         bsToast.show();
     }
+
+    /* ── Undo (Ctrl+Z) ── */
+    function saveHistory() {
+        history.push(JSON.stringify(formFields));
+        if (history.length > 30) history.shift();
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            if (history.length === 0) {
+                showToast('Nothing to undo', 'info');
+                return;
+            }
+            formFields = JSON.parse(history.pop());
+            renderFields();
+            saveForm();
+            showToast('Undo successful', 'info');
+        }
+    });
 
     /* ── LocalStorage ── */
     function saveForm() {
@@ -556,6 +574,8 @@
 
         if (!draggedFieldType) return;
 
+        saveHistory();
+
         const newField = {
             id: Date.now(),
             type: draggedFieldType,
@@ -606,11 +626,10 @@
             card.className = 'field-card' + (field.id === selectedFieldId ? ' selected' : '');
             card.dataset.id = field.id;
 
-            const icon  = fieldIcons[field.type] || 'bi-input-cursor';
+            const icon    = fieldIcons[field.type] || 'bi-input-cursor';
             const isFirst = formFields[0].id === field.id;
             const isLast  = formFields[formFields.length - 1].id === field.id;
 
-            /* meta hint */
             let metaHint = '';
             if (field.placeholder) metaHint = `Placeholder: "${field.placeholder}"`;
             else if (['dropdown','radio','checkbox'].includes(field.type)) metaHint = `${field.options.length} options`;
@@ -627,16 +646,16 @@
                         <span class="badge-type">${field.type}</span>
                     </div>
                     <div class="field-card-actions">
-                        <button class="btn-icon" title="Move up"    onclick="moveUp(${field.id})"        ${isFirst ? 'disabled' : ''}>
+                        <button class="btn-icon" title="Move up"   onclick="moveUp(${field.id})"       ${isFirst ? 'disabled' : ''}>
                             <i class="bi bi-chevron-up"></i>
                         </button>
-                        <button class="btn-icon" title="Move down"  onclick="moveDown(${field.id})"      ${isLast ? 'disabled' : ''}>
+                        <button class="btn-icon" title="Move down" onclick="moveDown(${field.id})"     ${isLast ? 'disabled' : ''}>
                             <i class="bi bi-chevron-down"></i>
                         </button>
-                        <button class="btn-icon" title="Edit"       onclick="editField(${field.id})">
+                        <button class="btn-icon" title="Edit"      onclick="editField(${field.id})">
                             <i class="bi bi-pencil"></i>
                         </button>
-                        <button class="btn-icon" title="Duplicate"  onclick="duplicateField(${field.id})">
+                        <button class="btn-icon" title="Duplicate" onclick="duplicateField(${field.id})">
                             <i class="bi bi-copy"></i>
                         </button>
                         <button class="btn-icon btn-danger-soft" title="Delete" onclick="deleteField(${field.id})">
@@ -645,9 +664,7 @@
                     </div>
                 </div>
                 ${metaHint ? `<div class="field-card-meta"><i class="bi bi-info-circle me-1"></i>${metaHint}</div>` : ''}
-                <div class="mt-2">
-                    ${getFieldPreview(field)}
-                </div>`;
+                <div class="mt-2">${getFieldPreview(field)}</div>`;
 
             dropCanvas.appendChild(card);
         });
@@ -659,30 +676,21 @@
 
         if (field.type === 'textarea')
             return `<textarea class="${cls}" placeholder="${field.placeholder}" disabled rows="2"></textarea>`;
-
         if (field.type === 'dropdown')
             return `<select class="${cls}" disabled>${field.options.map(o => `<option>${o}</option>`).join('')}</select>`;
-
         if (field.type === 'radio')
             return `<div class="d-flex flex-wrap gap-2">${field.options.map(o => `<label class="d-flex align-items-center gap-1 small text-muted"><input type="radio" disabled> ${o}</label>`).join('')}</div>`;
-
         if (field.type === 'checkbox')
             return `<div class="d-flex flex-wrap gap-2">${field.options.map(o => `<label class="d-flex align-items-center gap-1 small text-muted"><input type="checkbox" disabled> ${o}</label>`).join('')}</div>`;
-
-        if (field.type === 'date')   return `<input type="date"   class="${cls}" disabled>`;
-        if (field.type === 'file')   return `<input type="file"   class="${cls}" disabled>`;
-        if (field.type === 'title')  return `<h4 class="fw-bold mb-0 text-dark">${field.label}</h4>`;
+        if (field.type === 'date')        return `<input type="date" class="${cls}" disabled>`;
+        if (field.type === 'file')        return `<input type="file" class="${cls}" disabled>`;
+        if (field.type === 'title')       return `<h4 class="fw-bold mb-0 text-dark">${field.label}</h4>`;
         if (field.type === 'description') return `<p class="mb-0 text-muted small">${field.defaultValue || 'Description text...'}</p>`;
-        if (field.type === 'newline') return `<div class="py-1 text-muted small fst-italic"><i class="bi bi-arrow-return-left me-1"></i>Line break</div>`;
-        if (field.type === 'pagebreak') return `<hr style="border-top: 2px dashed #cbd5e1;" class="my-1">`;
-        if (field.type === 'hidden') return `<div class="d-flex align-items-center gap-2 text-muted small"><i class="bi bi-eye-slash"></i><span>Hidden value: "${field.defaultValue || ''}"</span></div>`;
-
-        if (field.type === 'state')
-            return `<select class="${cls}" disabled><option>Gujarat</option><option>Maharashtra</option></select>`;
-
-        if (field.type === 'city')
-            return `<select class="${cls}" disabled><option>Ahmedabad</option><option>Rajkot</option></select>`;
-
+        if (field.type === 'newline')     return `<div class="py-1 text-muted small fst-italic"><i class="bi bi-arrow-return-left me-1"></i>Line break</div>`;
+        if (field.type === 'pagebreak')   return `<hr style="border-top: 2px dashed #cbd5e1;" class="my-1">`;
+        if (field.type === 'hidden')      return `<div class="d-flex align-items-center gap-2 text-muted small"><i class="bi bi-eye-slash"></i><span>Hidden value: "${field.defaultValue || ''}"</span></div>`;
+        if (field.type === 'state')       return `<select class="${cls}" disabled><option>Gujarat</option><option>Maharashtra</option></select>`;
+        if (field.type === 'city')        return `<select class="${cls}" disabled><option>Ahmedabad</option><option>Rajkot</option></select>`;
         if (field.type === 'statecity')
             return `<div class="row g-2">
                 <div class="col-6"><select class="${cls}" disabled><option>State</option></select></div>
@@ -692,7 +700,45 @@
         return `<input type="${field.type}" class="${cls}" placeholder="${field.placeholder}" disabled>`;
     }
 
-    /* ── Options list (dropdown / radio / checkbox) ── */
+    /* ── Live Preview Modal ── */
+    function getPreviewHTML(field) {
+        const req = field.required ? '<span class="required-star">*</span>' : '';
+
+        if (field.type === 'title')       return `<h4 class="fw-bold">${field.label}</h4>`;
+        if (field.type === 'description') return `<p class="text-muted">${field.defaultValue || 'Description text'}</p>`;
+        if (field.type === 'newline')     return `<br>`;
+        if (field.type === 'pagebreak')   return `<hr>`;
+        if (field.type === 'hidden')      return '';
+
+        let input = '';
+        if (field.type === 'textarea')
+            input = `<textarea class="form-control" placeholder="${field.placeholder}" rows="3"></textarea>`;
+        else if (field.type === 'dropdown')
+            input = `<select class="form-control"><option value="">Select...</option>${field.options.map(o => `<option>${o}</option>`).join('')}</select>`;
+        else if (field.type === 'radio')
+            input = `<div>${field.options.map(o => `<div class="form-check"><input class="form-check-input" type="radio" name="radio_${field.id}"><label class="form-check-label">${o}</label></div>`).join('')}</div>`;
+        else if (field.type === 'checkbox')
+            input = `<div>${field.options.map(o => `<div class="form-check"><input class="form-check-input" type="checkbox"><label class="form-check-label">${o}</label></div>`).join('')}</div>`;
+        else if (field.type === 'date')
+            input = `<input type="date" class="form-control">`;
+        else if (field.type === 'file')
+            input = `<input type="file" class="form-control">`;
+        else if (field.type === 'state')
+            input = `<select class="form-control"><option>Gujarat</option><option>Maharashtra</option></select>`;
+        else if (field.type === 'city')
+            input = `<select class="form-control"><option>Ahmedabad</option><option>Rajkot</option></select>`;
+        else if (field.type === 'statecity')
+            input = `<div class="row g-2"><div class="col-6"><select class="form-control"><option>State</option></select></div><div class="col-6"><select class="form-control"><option>City</option></select></div></div>`;
+        else
+            input = `<input type="${field.type}" class="form-control" placeholder="${field.placeholder}">`;
+
+        return `<div class="preview-field-wrap">
+            <label>${field.label}${req}</label>
+            ${input}
+        </div>`;
+    }
+
+    /* ── Options list ── */
     function renderOptionsList(field) {
         const list = document.getElementById('optionsList');
         list.innerHTML = '';
@@ -762,6 +808,7 @@
 
     /* ── Duplicate ── */
     function duplicateField(id) {
+        saveHistory();
         const index = formFields.findIndex(f => f.id === id);
         if (index === -1) return;
         const copy = { ...formFields[index], id: Date.now() };
@@ -771,13 +818,13 @@
         showToast(`"${copy.label}" duplicated`, 'info');
     }
 
-    /* ── Delete (with confirmation) ── */
+    /* ── Delete ── */
     function deleteField(id) {
         const field = formFields.find(f => f.id === id);
         if (!field) return;
-
         if (!confirm(`Delete "${field.label}"? This cannot be undone.`)) return;
 
+        saveHistory();
         formFields = formFields.filter(f => f.id !== id);
 
         if (selectedFieldId === id) {
@@ -790,7 +837,7 @@
         showToast(`"${field.label}" deleted`, 'danger');
     }
 
-    /* ── Update selected field from options panel ── */
+    /* ── Update selected field ── */
     function updateSelectedField() {
         const field = formFields.find(f => f.id === selectedFieldId);
         if (!field) return;
@@ -815,7 +862,7 @@
     document.getElementById('addFieldsTab').addEventListener('click', showAddFieldsPanel);
     document.getElementById('fieldOptionsTab').addEventListener('click', function () {
         if (!selectedFieldId) {
-            showToast('Select a field first by clicking ✏️', 'info');
+            showToast('Click ✏️ on a field to edit it first', 'info');
             return;
         }
         document.getElementById('addFieldsPanel').classList.add('d-none');
@@ -837,6 +884,7 @@
     function moveUp(id) {
         const i = formFields.findIndex(f => f.id === id);
         if (i <= 0) return;
+        saveHistory();
         [formFields[i], formFields[i - 1]] = [formFields[i - 1], formFields[i]];
         renderFields();
         saveForm();
@@ -845,17 +893,25 @@
     function moveDown(id) {
         const i = formFields.findIndex(f => f.id === id);
         if (i === -1 || i === formFields.length - 1) return;
+        saveHistory();
         [formFields[i], formFields[i + 1]] = [formFields[i + 1], formFields[i]];
         renderFields();
         saveForm();
     }
 
-    /* ── Next → View JSON ── */
+    /* ── View JSON ── */
     document.getElementById('nextBtn').addEventListener('click', function () {
-        const schema = {
-            title: document.getElementById('formTitle').value || 'Untitled Form',
-            fields: formFields
-        };
+        if (formFields.length === 0) {
+            showToast('Add at least one field first', 'danger');
+            return;
+        }
+        const title = document.getElementById('formTitle').value.trim();
+        if (!title) {
+            showToast('Please enter a form title first', 'danger');
+            document.getElementById('formTitle').focus();
+            return;
+        }
+        const schema = { title, fields: formFields };
         document.getElementById('jsonOutput').textContent = JSON.stringify(schema, null, 2);
         new bootstrap.Modal(document.getElementById('jsonModal')).show();
     });
@@ -865,9 +921,7 @@
         const text = document.getElementById('jsonOutput').textContent;
         navigator.clipboard.writeText(text).then(() => {
             this.innerHTML = '<i class="bi bi-clipboard-check me-1"></i>Copied!';
-            setTimeout(() => {
-                this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy JSON';
-            }, 2000);
+            setTimeout(() => { this.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy JSON'; }, 2000);
             showToast('JSON copied to clipboard', 'success');
         });
     });
@@ -875,6 +929,7 @@
     /* ── Cancel / Clear ── */
     document.getElementById('cancelBtn').addEventListener('click', function () {
         if (!confirm('Clear the entire form? This cannot be undone.')) return;
+        saveHistory();
         formFields = [];
         selectedFieldId = null;
         document.getElementById('formTitle').value = '';
@@ -885,7 +940,7 @@
         showToast('Form cleared', 'danger');
     });
 
-    /* ── Boot: load saved form ── */
+    /* ── Boot ── */
     loadForm();
 </script>
 
