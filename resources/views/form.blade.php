@@ -224,12 +224,59 @@
     }
 
     @media (max-width: 1024px) {
-        .content-wrapper {
-            margin-left: 0 !important;
-            padding: 16px;
-            padding-top: 80px !important;
-        }
+    .content-wrapper {
+        margin-left: 0 !important;
+        padding: 16px;
+        padding-top: 80px !important;
     }
+
+    .col-lg-8,
+    .col-lg-4 {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+
+    .fb-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .field-card-actions {
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+
+    .fb-canvas {
+        min-height: 300px;
+    }
+}
+
+    /* Stack canvas and panel vertically */
+    .col-lg-8,
+    .col-lg-4 {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Counter badge wraps nicely */
+    .fb-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Field card actions don't overflow */
+    .field-card-actions {
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+
+    /* Canvas min height smaller on tablet */
+    .fb-canvas {
+        min-height: 300px;
+    }
+ }
 
     /* ── Header ── */
     .fb-title {
